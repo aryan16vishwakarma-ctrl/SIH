@@ -1,16 +1,27 @@
 import time
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
+from app.database import engine, Base
+import app.models
 from app.routers import auth, farmers, products, orders, pricing, beckn
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure all tables exist on startup
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
 
 app = FastAPI(
     title="KisaanConnect API",
     description="Farmer-to-Buyer Digital Marketplace API for SIH Problem Statement 26033 (Realtime & Speed Optimized)",
     version="2.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # 1. GZip Compression Middleware for response compression
